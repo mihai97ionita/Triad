@@ -17,11 +17,12 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin")
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
-	implementation("org.jetbrains.kotlin:kotlin-allopen")
-	implementation("org.jetbrains.kotlin:kotlin-noarg")
-//	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.5.0")
-//	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
+//	implementation("org.jetbrains.kotlin:kotlin-allopen")
+//	implementation("org.jetbrains.kotlin:kotlin-noarg")
 
+	testImplementation("org.junit.jupiter:junit-jupiter-engine:5.7.1")
+	testImplementation("org.junit.jupiter:junit-jupiter-params:5.7.1")
+	testImplementation("org.assertj:assertj-core:3.20.1")
 	testImplementation("org.jetbrains.kotlin:kotlin-test")
 }
 

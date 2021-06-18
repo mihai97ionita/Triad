@@ -1,16 +1,35 @@
 package ro.triad
 
-class TriadMap<K, V> () {
+class TriadMap<K, V> {
 
-    private constructor(map: MutableMap<K, Triad<K, V>>) : this() {
-        this.internalMap = map
+    val size: Int
+        get() = this.internalMap.size
+
+    //TODO should this be immutable? return a copy?
+    val keys: Set<K>
+        get() = this.internalMap.keys
+
+    //TODO should this be immutable? return a copy?
+    val entries: Set<Map.Entry<K, Triad<K, V>>>
+        get() = this.internalMap.entries
+
+    private var internalMap: MutableMap<K, Triad<K, V>>
+
+    constructor(){
+        internalMap = HashMap()
     }
 
     constructor(triad: TriadMap<K, V>) : this() {
         this.internalMap = HashMap(triad.internalMap)
     }
 
-    private var internalMap: MutableMap<K, Triad<K, V>> = HashMap()
+    private constructor(map: MutableMap<K, Triad<K, V>>) : this() {
+        this.internalMap = map
+    }
+
+    fun copy(): TriadMap<K, V>{
+        return TriadMap(HashMap(this.internalMap))
+    }
 
     operator fun get(key: K): Triad<K, V> {
         return try {
@@ -20,8 +39,8 @@ class TriadMap<K, V> () {
         }
     }
 
-    operator fun set(key: K, triad: Triad<K, V>){
-        internalMap[key] = triad
+    fun setTriad(triad: Triad<K, V>){
+        internalMap[triad.id] = triad
     }
 
     operator fun set(key: K, value: V?){
@@ -36,34 +55,56 @@ class TriadMap<K, V> () {
         internalMap[key] = Triad.ofError<K,V>(key, exception)
     }
 
-    operator fun plus(anotherMap: TriadMap<K, V>): TriadMap<K, V>{
-        val copy = HashMap(this.internalMap)
-        val map = anotherMap.internalMap
-        val keys = anotherMap.internalMap.keys
+    fun removeByKey(key: K){
+        this.internalMap.remove(key)
+    }
+
+    fun remove(triad: Triad<K, V>){
+        removeByKey(triad.id)
+    }
+
+    operator fun plus(otherTriadMap: TriadMap<K, V>): TriadMap<K, V>{
+        val copy = this.copy()
+
+        val keys = otherTriadMap.keys
         keys.forEach { key ->
-            val triad: Triad<K, V> = map[key]!!
-            copy[key] = triad
+            val newTriad: Triad<K, V> = otherTriadMap[key]
+            copy.setTriad(newTriad)
         }
-        return TriadMap(copy)
+
+        return copy
     }
 
     operator fun plus(triad: Triad<K, V>): TriadMap<K, V> {
-        val copy = HashMap(this.internalMap)
-        copy[triad.key] = triad
-        return TriadMap(copy)
+        val copy = this.copy()
+        copy.setTriad(triad)
+        return copy
+    }
+
+    operator fun minus(otherTriadMap: TriadMap<K, V>): TriadMap<K, V> {
+        val copy = this.copy()
+
+        val keys = otherTriadMap.keys
+        keys.forEach { key ->
+            copy.removeByKey(key)
+        }
+
+        return copy
     }
 
     operator fun minus(triad: Triad<K, V>): TriadMap<K, V> {
-        val copy = HashMap(this.internalMap)
-        copy.remove(triad.key)
-        return TriadMap(copy)
+        val copy = this.copy()
+        copy.removeByKey(triad.id)
+        return copy
     }
 
     override fun toString(): String {
         if (this.internalMap.isEmpty())
             return "[]"
+
         val map = this.internalMap
         val keys = this.internalMap.keys
+
         val list = keys.map { key ->
              map[key]!!.toString()
         }.reduce { acc, s -> "$acc,$s" }
@@ -71,39 +112,31 @@ class TriadMap<K, V> () {
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other is TriadMap<*, *>){
-            if (other.internalMap.size != this.internalMap.size)
-                return false
-            if (this.internalMap.isEmpty())
-                return true
-            val map = other.internalMap
-            val keys = other.internalMap.keys
-            val otherInThis = keys.map { key ->
-                val triad = map[key]!!
-                try {
-                    return this[key as K] == triad
-                }catch (e: Exception){
-                    false
-                }
-                //TODO check this reduce
-            }.reduce { acc, b -> acc && b }
-
-            val thisInOther = this.internalMap.keys.map { key ->
-                val triad = this.internalMap[key]!!
-                try {
-                    return triad == map[key]
-                }catch (e: Exception){
-                    false
-                }
-                //TODO check this reduce
-            }.reduce { acc, b -> acc && b }
-
-            return otherInThis && thisInOther
+        val otherTriadMap = try {
+            other as TriadMap<K, V>
+        }catch (e: Exception){
+            return false
         }
-        return false
+
+        if (otherTriadMap.size != this.size)
+            return false
+
+        if (this.internalMap.isEmpty())
+            return true
+
+        val allKeys = this.keys + otherTriadMap.keys
+
+        return allKeys.map { key ->
+            try {
+                this[key] == otherTriadMap[key]
+            }catch (e: Exception){
+                false
+            }
+        }.reduce { acc, b -> acc && b }
+
     }
 
     override fun hashCode(): Int {
-        return this.internalMap.hashCode()
+        return this.keys.hashCode()
     }
 }
